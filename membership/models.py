@@ -20,8 +20,7 @@ from django.contrib.contenttypes.models import ContentType
 
 from utils import log_change, tupletuple_to_dict
 
-from email_utils import send_as_email, send_preapprove_email
-from email_utils import bill_sender, preapprove_email_sender
+import email_utils
 
 from reference_numbers import generate_membership_bill_reference_number
 from reference_numbers import generate_checknumber, add_checknumber, group_right
@@ -209,7 +208,7 @@ class Membership(models.Model):
         self.save()
         log_change(self, user, change_message="Preapproved")
 
-        ret_items = send_preapprove_email.send_robust(self.__class__, instance=self, user=user)
+        ret_items = email_utils.send_preapprove_email.send_robust(self.__class__, instance=self, user=user)
         for item in ret_items:
             sender, error = item
             if error != None:
@@ -423,7 +422,7 @@ class Bill(models.Model):
     def send_as_email(self):
         membership = self.billingcycle.membership
         if self.billingcycle.sum > 0:
-            ret_items = send_as_email.send_robust(self.__class__, instance=self)
+            ret_items = email_utils.send_as_email.send_robust(self.__class__, instance=self)
             for item in ret_items:
                 sender, error = item
                 if error != None:
@@ -496,6 +495,6 @@ models.signals.post_save.connect(logging_log_change, sender=Fee)
 models.signals.post_save.connect(logging_log_change, sender=Payment)
 
 # These are registered here due to import madness and general clarity
-send_as_email.connect(bill_sender, sender=Bill, dispatch_uid="email_bill")
-send_preapprove_email.connect(preapprove_email_sender, sender=Membership,
+email_utils.send_as_email.connect(email_utils.bill_sender, sender=Bill, dispatch_uid="email_bill")
+email_utils.send_preapprove_email.connect(email_utils.preapprove_email_sender, sender=Membership,
                               dispatch_uid="preapprove_email")
